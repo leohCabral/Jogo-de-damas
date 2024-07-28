@@ -1,14 +1,20 @@
-document.addEventListener('DOMContentLoaded', (event) => {
-    const canvas = document.getElementById('damasTabuleiro');
+document.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById("damasTabuleiro");
+    const placarBrancas= document.getElementById("placarbrancas");
+    const placarPretas= document.getElementById("placarpretas");
+    const vezdojogador= document.getElementById("vezdojogador");
+
     if (canvas) {
-        const ctx = canvas.getContext('2d');
+           const ctx = canvas.getContext("2d");
 
         const LINHAS = 8;
         const COLUNAS = 8;
         const TAMANHO_QUADRADO = canvas.width / COLUNAS;
 
-        // Dados das peças
-        const pecas = [
+        // Variáveis de estado
+        let jogadorAtual = 'branca';
+        let placar = { branca: 0, preta: 0 };
+        let pecas = [
             { x: 0, y: 0, cor: 'branca' },
             { x: 2, y: 0, cor: 'branca' },
             { x: 4, y: 0, cor: 'branca' },
@@ -56,37 +62,65 @@ document.addEventListener('DOMContentLoaded', (event) => {
             desenhaPecas();
         }
 
-        desenhaTabuleiroEPecas();
+        function atualizaPlacar(){
+            placarBrancas.textContent=`brancas: ${placar.branca}`;
+            placarPretas.textContent=`pretas: ${placar.preta}`;
+            vezdojogador.textContent=`vez de : ${jogadorAtual.charAt(0).toUpperCase() + jogadorAtual.slice(1)}`;
+        }
+        
 
-        let seleciondo = null;
+        desenhaTabuleiroEPecas();
+        atualizaPlacar();
+
+        let selecionado = null;
         canvas.addEventListener('click', (event) => {
             const rect = canvas.getBoundingClientRect();
             const x = event.clientX - rect.left;
-            const y = event.clientY - rect.left;
+            const y = event.clientY - rect.top;
             const coluna = Math.floor(x / TAMANHO_QUADRADO);
             const linha = Math.floor(y / TAMANHO_QUADRADO);
 
-            if (seleciondo === null) {
-                seleciondo = pecas.find(peca => peca.x === coluna && peca.y === linha);
-                if (seleciondo) {
+            if (selecionado === null) {
+                selecionado = pecas.find(peca => peca.x === coluna && peca.y === linha && peca.cor === jogadorAtual);
+                if (selecionado) {
                     desenhaTabuleiroEPecas();
                     ctx.strokeStyle = 'red';
                     ctx.lineWidth = 3;
-                    ctx.strokeRect(seleciondo.x * TAMANHO_QUADRADO, seleciondo.y * TAMANHO_QUADRADO, TAMANHO_QUADRADO, TAMANHO_QUADRADO);
-
+                    ctx.strokeRect(selecionado.x * TAMANHO_QUADRADO, selecionado.y * TAMANHO_QUADRADO, TAMANHO_QUADRADO, TAMANHO_QUADRADO);
                 }
-                } else {
-                    if(seleciondo){
-                        seleciondo.x = coluna;
-                        seleciondo.y = linha;
-                        seleciondo = null;
+            } else {
+                const pecaExistente = pecas.find(peca => peca.x === coluna && peca.y === linha);
+                if (selecionado && !pecaExistente) {
+                    const deltaX = coluna - selecionado.x;
+                    const deltaY = linha - selecionado.y;
+                    if (Math.abs(deltaX) === 1 && Math.abs(deltaY) === 1) {
+                        // Movimento simples
+                        selecionado.x = coluna;
+                        selecionado.y = linha;
+                        jogadorAtual = jogadorAtual === 'branca' ? 'preta' : 'branca';
+                        selecionado = null;
                         desenhaTabuleiroEPecas();
-
-
+                        atualizaPlacar();
+                    } else if (Math.abs(deltaX) === 2 && Math.abs(deltaY) === 2) {
+                        // Captura de peça
+                        const meioX = selecionado.x + deltaX / 2;
+                        const meioY = selecionado.y + deltaY / 2;
+                        const pecaCapturada = pecas.find(peca => peca.x === meioX && peca.y === meioY && peca.cor !== jogadorAtual);
+                        if (pecaCapturada) {
+                            pecas = pecas.filter(peca => peca !== pecaCapturada);
+                            selecionado.x = coluna;
+                            selecionado.y = linha;
+                            placar[jogadorAtual]++;
+                            jogadorAtual = jogadorAtual === 'branca' ? 'preta' : 'branca';
+                            selecionado = null;
+                            desenhaTabuleiroEPecas();
+                            atualizaPlacar();
+                        }
+                    }else {
+                        selecionado = null 
                     }
-                }
-
+                }else{selecionado=null}
+            }
         });
-}else{
-    print('teste')
-}});
+    }
+});
